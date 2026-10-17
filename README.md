@@ -21,4 +21,4 @@ The script prepares transcripts; the skill/model writes the brief. For local med
 
 No URL downloading, cloud transcription APIs or speaker diarization. In hosted sandboxes without transcription tools, provide a transcript.
 
-See [evals/RESULTS.md](evals/RESULTS.md) for measured checks and platform blockers, and [evals/chatgpt-manual-test.md](evals/chatgpt-manual-test.md) for the Custom GPT checklist. Live Claude quality remains ungraded while Claude Code is signed out.
+See [evals/RESULTS.md](evals/RESULTS.md) for measured checks and platform blockers, and [evals/chatgpt-manual-test.md](evals/chatgpt-manual-test.md) for the Custom GPT checklist. Claude passes every fixture (graded outputs in [evals/outputs/claude/](evals/outputs/claude/)); ChatGPT quality still needs the manual run.

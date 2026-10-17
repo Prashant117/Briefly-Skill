@@ -19,6 +19,7 @@ MEDIA = {".mp4", ".mov", ".mkv", ".webm", ".m4v", ".mp3", ".m4a",
          ".wav", ".aac", ".flac", ".ogg"}
 CLOCK = r"\d+:\d{2}(?::\d{2})?(?:[.,]\d+)?"
 STAMP = re.compile(r"^\s*[\[(]?(" + CLOCK + r")[\])]?(?:\s+|$)(.*)$")
+HEADING = re.compile(r"^\s*(.{0,60}?)\s*[\[(]?(" + CLOCK + r")[\])]?\s*$")
 MISSING_WHISPER = ("No subtitles found and faster-whisper is not installed. Run: "
                    "pip install faster-whisper — or provide a transcript file.")
 
@@ -80,14 +81,30 @@ def subtitles(raw, metadata):
     return segments
 
 
+def heading(line):
+    """Teams/Otter "Name   0:03" or Meet "00:05:00" on its own line; text follows."""
+    match = HEADING.match(line)
+    words = match[1].split() if match else []
+    if match and len(words) <= 4 and not re.search(r"[.,;:!?]$", match[1]) \
+            and not any(w[0].islower() for w in words):
+        return seconds(match[2]), match[1] or None
+    return None
+
+
 def plain(raw, metadata):
-    segments, duration = [], None
+    segments, duration, carried = [], None, (None, None)
     for line in raw.splitlines():
+        header = heading(line)
+        if header:
+            carried = header
+            duration = max(duration or 0, header[0])
+            continue
         match = STAMP.match(line)
-        start = seconds(match[1]) if match else None
-        if start is not None:
+        start, speaker = (seconds(match[1]), None) if match else carried
+        if match:
+            carried = (None, None)
             duration = max(duration or 0, start)
-        segments.extend(lines(match[2] if match else line, metadata, start, start, markup=False))
+        segments.extend(lines(match[2] if match else line, metadata, start, start, speaker, markup=False))
     metadata["duration"] = duration
     return segments
 
@@ -258,6 +275,9 @@ def main():
             cached = output.exists() and output.stat().st_mtime_ns >= path.stat().st_mtime_ns and not args.force
             if cached:
                 text = output.read_text(encoding="utf-8")
+                # meeting.vtt and meeting.txt share a transcript path; only reuse our own.
+                cached = text.startswith("# source: {} |".format(" ".join(path.name.split())))
+            if cached:
                 match = re.search(r"\| duration: (\d+:\d{2}:\d{2}|null) \|", text.split("\n", 1)[0])
                 duration = match[1] if match and match[1] != "null" else None
                 source = "cache"

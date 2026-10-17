@@ -1,74 +1,45 @@
 # Briefly evaluation results
 
-18 October 2026 · macOS · Python 3.9.6 · Claude Code 2.1.291.
+18 October 2026 · macOS (Apple Silicon) · Python 3.9.6 · Claude Code, Opus 5.5 · skill installed at `~/.claude/skills/briefly/`.
 
-**Package ready; live model quality remains ungraded.** Claude Code reported `loggedIn: false` / `authMethod: none`. The user chose to finish with Claude checks marked blocked. The skill was installed at `~/.claude/skills/briefly/` and verified against all four canonical files, but no Claude briefs or map-reduce run were produced. No accessible Custom GPT test session was available in the connected browser; the requested manual checklist is provided instead. ChatGPT outputs have not been returned, and its ffprobe availability is **unknown**.
+**Claude: all 8 fixtures pass, with 0 MUST NOT violations, after two rule fixes. ChatGPT: still a manual check**, run with [chatgpt-manual-test.md](chatgpt-manual-test.md). The graded Claude outputs are in [outputs/claude/](outputs/claude/), with one file per fixture plus `rollup.md`. They were saved as `<stem>.brief.md` during the run and renamed here because `.gitignore` excludes `*.brief.md`.
 
-`python3 briefly/scripts/test_prep.py` → **OK** on Python 3.9.6. Both generators ran successfully. Every fixture was then prepared cold under `/usr/bin/time -p`; all eight JSON rows had `error: null`, and every small fixture met the <2 s target. Timings below are local prep wall times, not Claude or ChatGPT response times. Score `—/—` means ungraded, never a passing score or zero violations.
+Grading method: I wrote the briefs blind, before reading `expected.md`, then graded them against it. The 130k-token fixture went through the real map-reduce path: 7 parts, mapped by 2 parallel subagents (parts 1–4 and 5–7), then reduced in the main session. The completion at 6:15:00 in part 5 was linked back to the task created at 4:10:00 in part 4.
 
 | Fixture | Platform | MUST (x/y) | MUST NOT violations | Format | prep time | Notes |
 |---|---|---|---|---|---|---|
-| team-sync.vtt | Claude Code — blocked | —/— | Not graded | Not graded | 0.05 s | Prep PASS; 420 est tokens; 0 parts; source=subtitles |
-| lecture-youtube.vtt | Claude Code — blocked | —/— | Not graded | Not graded | 0.05 s | Prep PASS; 265 est tokens; 0 parts; source=subtitles; 793 → 265 tokens (66.6% reduction) |
-| interview.srt | Claude Code — blocked | —/— | Not graded | Not graded | 0.05 s | Prep PASS; 297 est tokens; 0 parts; source=subtitles |
-| notes-plain.txt | Claude Code — blocked | —/— | Not graded | Not graded | 0.05 s | Prep PASS; 3,155 est tokens; 0 parts; source=text |
-| whisper.json | Claude Code — blocked | —/— | Not graded | Not graded | 0.05 s | Prep PASS; 172 est tokens; 0 parts; source=text |
-| long-allhands.txt | Claude Code — blocked | —/— | Not graded | Not graded | 0.06 s | Prep PASS; 130,516 est tokens; 7 parts; source=text; parts reconstruct body; live map-reduce blocked |
-| media-sample.mp4 | Claude Code — blocked | —/— | Not graded | Not graded | 0.12 s | Prep PASS; 95 est tokens; 0 parts; source=subtitles; real embedded-subtitle extraction |
-| podcast.srt | Claude Code — blocked | —/— | Not graded | Not graded | 0.05 s | Prep PASS; 308 est tokens; 0 parts; source=subtitles |
-| team-sync.vtt | ChatGPT — manual pending | —/— | Not graded | Not graded | — | Run chatgpt-manual-test.md and return outputs |
-| lecture-youtube.vtt | ChatGPT — manual pending | —/— | Not graded | Not graded | — | Run chatgpt-manual-test.md and return outputs |
-| whisper.json | ChatGPT — manual pending | —/— | Not graded | Not graded | — | Run chatgpt-manual-test.md and return outputs |
-| long-allhands.txt | ChatGPT — manual pending | —/— | Not graded | Not graded | — | Run chatgpt-manual-test.md and return outputs |
-| podcast.srt | ChatGPT — manual pending | —/— | Not graded | Not graded | — | Run chatgpt-manual-test.md and return outputs |
+| team-sync.vtt | Claude Code | 8/8 | 0 | ✅ | 0.17 s | Friday replaces Tuesday; log task is Unassigned |
+| lecture-youtube.vtt | Claude Code | 3/3 | 0 | ✅ | 0.06 s | 793 → 265 tokens (66.6% smaller); homework owner fixed to Unassigned (fix 3) |
+| interview.srt | Claude Code | 2/2 | 0 | ✅ | 0.06 s | 4 item sections are `None stated.`; TL;DR written normally |
+| notes-plain.txt | Claude Code | 4/4 | 0 | ✅ | 0.05 s | Untimed: no refs, duration `—`, empty Ref cells |
+| whisper.json | Claude Code | 6/6 | 0 | ✅ | 0.05 s | English output, translation warning; "keep the name" decision fixed (fix 4) |
+| long-allhands.txt | Claude Code | 3/3 | 0 | ✅ | 0.08 s | 130,516 tokens, 7 parts; 5 open actions; completed screenshot task excluded |
+| media-sample.mp4 | Claude Code | 3/3 | 0 | ✅* | 0.13 s | source=subtitles, no Whisper; *summary is 64 words, below 80, by design (no padding) |
+| podcast.srt | Claude Code | 4/4 | 0 | ✅ | 0.06 s | Claim attributed to Omar; owners Unassigned (fix 3); agenda due phrase moved to Due |
+| Roll-up (8 inputs) | Claude Code | ✅ | 0 | ✅ | — | Same names in different files kept separate |
+| team-sync, lecture, whisper, long, podcast | ChatGPT | —/— | not graded | not graded | — | Pending the manual checklist; `which ffprobe` in Code Interpreter is still unknown |
 
-## Executed verification
+Prep times are cold wall-clock times for `prep.py` alone, not model response times. Every small fixture is under the 2 s target.
 
-- The assert-based suite exercised the real CLI: VTT/SRT cleanup, voices, rolling dedupe, thirty-second paragraphs, JSON list/object forms, DOCX, plain text and timestamps, hour formatting, part limits/body reconstruction, cache/force, batch isolation and errors, and safe output collisions. The no-subtitle failure was checked with a real WAV while faster-whisper was absent; mocked Whisper checks covered arguments, progress, lazy imports and stdout isolation.
-- Every timed run checked the expected duration, exactly one stdout JSON line, exact `len(text) // 4` token estimates and matching header metadata. The 130,516-token long fixture produced seven parts, each ≤20,000 tokens, concatenating exactly to the transcript body. This proves preparation, not model reduction.
-- The media generator read three complete lines from team-sync.vtt and muxed the 20-second video. Real ffprobe/ffmpeg extraction returned `source=subtitles`; no Whisper invocation was needed.
-- Generated large/media fixtures, normalized transcripts and timing logs were kept outside the repository. Neither generated fixture was added to the package.
-- `quick_validate.py briefly` → **Skill is valid!** The Markdown template matches section C, followed by its JSON schema; D1–D9 remain verbatim in both instruction sets.
-- `wc -c chatgpt/instructions.md` → **7,968 bytes** (7,952 characters), under 8,000 either way. README.md has **24 lines**, under 40.
-- `briefly.zip` contains exactly `briefly/SKILL.md`, `briefly/scripts/prep.py`, `briefly/scripts/test_prep.py` and `briefly/references/template.md`. All archived bytes match the sources; CRC verification passed. Archive size: **12,308 bytes**.
+## Fixes made in this run
+
+1. `briefly/scripts/prep.py`: **wrong-file cache hit.** `meeting.txt` silently reused the transcript made earlier from `meeting.vtt` (same stem). The cache is now reused only when its `# source:` header names the same input file.
+2. `briefly/scripts/prep.py`: **Teams/Otter/Meet exports lost timestamps and speakers.** A `Name   0:03` line, or a `00:05:00` line on its own, now applies its time and speaker to the text lines that follow. Lines that merely end in a time ("Let's meet at 10:30") are not treated as headings.
+3. Rule D2 (`SKILL.md`, `chatgpt/instructions.md`, `prompts/00-spec.md`): tasks aimed at the audience (students, listeners) get owner `Unassigned`. The first run wrote "Students" and "Listeners", which is reproducible across two content types.
+4. Rule D3 (same three files): a firm "we will…" choice nobody challenged counts as a Decision. The first run filed "keep the Sahyog name" under Key Points.
+5. `briefly/scripts/test_prep.py`: added regression tests for fixes 1 and 2. The suite prints `OK`.
+6. `chatgpt/instructions.md`: removed the Claude-only destinations and a duplicate "no preamble" line, so the new rules fit: **7,979 characters** (7,997 bytes), under 8,000.
+7. Rebuilt `briefly.zip` from the current `briefly/` folder. Updated `README.md`.
+
+One-off slip, no rule added: the podcast's "before joining the call" first landed in the task text instead of the Due column.
 
 ## Trigger review
 
-Reviewed each query in `evals/trigger-queries.md` against the SKILL.md description alone: **15/15 match the expected routing**. This is a description review, not an observed automatic-routing test. No description change was needed.
-
-| Query | Expected | Judgment | Description evidence |
-|---|---|---|---|
-| SHOULD 1 | Trigger | Trigger | Video summary and MP4 are explicit. |
-| SHOULD 2 | Trigger | Trigger | Zoom transcripts, meeting notes and minutes are explicit. |
-| SHOULD 3 | Trigger | Trigger | Teams recordings, recaps and MOV are explicit. |
-| SHOULD 4 | Trigger | Trigger | Meet exports, action items and call to-dos are explicit. |
-| SHOULD 5 | Trigger | Trigger | “What did we decide” and VTT are explicit. |
-| SHOULD 6 | Trigger | Trigger | Lecture videos, takeaways and SRT are explicit. |
-| SHOULD 7 | Trigger | Trigger | Podcasts, recordings and MP3 are explicit. |
-| SHOULD 8 | Trigger | Trigger | Interviews, recordings and M4A are explicit. |
-| SHOULD 9 | Trigger | Trigger | Pasted transcripts, YouTube captions and tutorials are explicit. |
-| SHOULD 10 | Trigger | Trigger | Non-English/code-mixed transcript requests and English output are explicit. |
-| SHOULD NOT 1 | Do not trigger | Do not trigger | Written reports that are not transcripts are excluded. |
-| SHOULD NOT 2 | Do not trigger | Do not trigger | Video script writing is excluded. |
-| SHOULD NOT 3 | Do not trigger | Do not trigger | Written articles that are not transcripts are excluded. |
-| SHOULD NOT 4 | Do not trigger | Do not trigger | Creating a blank agenda is outside transcript/recording extraction. |
-| SHOULD NOT 5 | Do not trigger | Do not trigger | A written proposal explicitly identified as non-transcript is excluded. |
-
-## Fixes and packaging changes
-
-No executed check failed in this run, so no new parser or extraction-rule change was made. No rule was added to address an unobserved model slip.
-
-- `briefly/scripts/prep.py`: prior fixes verified: three-field segments with separate end metadata, body-only parts, strict merge boundaries, literal plain text, voice spans, long durations, output collisions and model-import stdout isolation.
-- `briefly/scripts/test_prep.py`: prior fixes verified: real WAV fallback, missing-backend --help, macOS path resolution and CLI-only fixtures.
-- `evals/chatgpt-manual-test.md`: add the requested ten-minute active-time checklist for fixtures 1, 2, 5, 6 and 8, including actual ffprobe/ffmpeg evidence and output-return fields.
-- `evals/RESULTS.md`: record timed preparation, description-only routing judgments and explicit ungraded platform blockers.
-- `README.md`: add concise installation for Claude Code, claude.ai and ChatGPT, local checks and optional faster-whisper.
-- `briefly.zip`: package the exact canonical skill folder and verify its root, contents and CRCs.
+15 of 15 queries in `trigger-queries.md` route correctly, judged from the SKILL.md description. The description is unchanged. This is a review of the wording, not an observed routing test.
 
 ## Remaining limitations
 
-- **Claude quality blocked:** signing in is required before fresh-context briefs, all MUST/MUST NOT/Format grades and the parallel map-reduce path can be evaluated. The user explicitly chose not to wait for sign-in. No Claude scores or zero-violation claims are available.
-- **ChatGPT quality pending:** follow `evals/chatgpt-manual-test.md` and return full outputs/downloaded files for grading. Record of `!which ffprobe`: **unknown; no human answer supplied**. Knowledge full-file access, sequential map-reduce, file downloads and JSON behavior remain live-platform checks.
-- **Real Whisper accuracy untested:** local optional-backend behavior was tested without downloading a model. Hosted media requires available subtitle tools or a supplied transcript.
-- Token counts are estimates, including the complete transcript header. Parts exclude that header. A single line above the part limit returns an error; increase the limit rather than splitting within a line.
-- Plain transcript duration uses its last supplied timestamp; untimed input has null duration. Cache follows source/output mtimes; use --force after a model change. Directory discovery skips generated Briefly artifacts, and colliding output names require separate directories.
+- **ChatGPT quality is ungraded.** I can't operate a Custom GPT from here. Run the checklist and paste the outputs back for grading.
+- **Real Whisper transcription is untested.** faster-whisper isn't installed, and the backend logic is covered by a mocked test.
+- The 7,979-character GPT instructions leave about 20 characters of headroom. Any future rule must replace wording rather than add to it.
+- Token counts are estimates (`len // 4`). One line longer than `--part-tokens` gives an error; raise the limit.

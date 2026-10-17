@@ -122,6 +122,20 @@ Priya: Third point.
         row = run(stamped)[0]
         assert body(row) == "[00:12] Alice: First.\n[00:42] Bob: Second.\n[12:03] Third.\n"
 
+        teams = write("teams.txt", "Alice Smith   0:03\nHello everyone.\nStill Alice.\n"
+                      "Bob Jones   0:41\nI'll send the deck.\nLet's meet at 10:30\n")
+        assert body(run(teams)[0]) == ("[00:03] Alice Smith: Hello everyone. Still Alice.\n"
+                                       "[00:41] Bob Jones: I'll send the deck. Let's meet at 10:30\n")
+        meet = write("meet.txt", "00:05:00\nAlice: Agreed.\nBob: Ok.\n[00:06:00] Cara: Next.\nUntimed.\n")
+        assert body(run(meet)[0]) == "[05:00] Alice: Agreed.\n[05:00] Bob: Ok.\n[06:00] Cara: Next.\nUntimed.\n"
+
+        same = write("same-stem.vtt", "WEBVTT\n\n00:00:00.000 --> 00:00:02.000\nFrom VTT.\n")
+        run(same)
+        older = write("same-stem.txt", "From TXT.\n")
+        os.utime(older, (0, 0))
+        row = run(older)[0]
+        assert row["source"] == "text" and body(row) == "From TXT.\n"
+
         large = write("large.txt", "".join("Line {} {}\n".format(n, "word " * 25) for n in range(90)))
         row = run(large, "--part-tokens", 1000)[0]
         assert len(row["parts"]) >= 3

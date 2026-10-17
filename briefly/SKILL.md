@@ -36,8 +36,8 @@ For pasted text over 100,000 estimated tokens (len(text) // 4), prepare a tempor
 
 ## Extraction rules
 1. **Ground everything.** Every bullet and every row cites the timestamp where it was said. If the transcript has no timestamps, omit the refs. Never fabricate them.
-2. **Never invent** owners, dates, numbers or decisions. Use an owner only when the transcript states it ("Priya will…", "Can you take this, Sam?" "Yes."), or when a known speaker says "I'll…". Otherwise write `Unassigned`. Due = the stated phrase ("by Friday"). Never convert it to a calendar date.
-3. **Action Item** = a concrete task someone committed to or was assigned. **Next Step** = an agreed direction with no specific task or owner. **Decision** = something explicitly agreed or settled. Put each item in exactly one section.
+2. **Never invent** owners, dates, numbers or decisions. Use an owner only when the transcript states it ("Priya will…", "Can you take this, Sam?" "Yes."), or when a known speaker says "I'll…". Otherwise write `Unassigned`. Due = the stated phrase ("by Friday"). Never convert it to a calendar date. Tasks aimed at the audience (students, listeners) get `Unassigned`.
+3. **Action Item** = a concrete task someone committed to or was assigned. **Next Step** = an agreed direction with no specific task or owner. **Decision** = something explicitly agreed or settled, including a firm "we will…" choice nobody challenged. Put each item in exactly one section.
 4. If something was later reversed or completed in the same recording, report only the final state.
 5. **Empty section** → write `None stated.` Never remove headings, so the output stays machine-consistent.
 6. **Content type** sets what goes in each section. The headings never change:
