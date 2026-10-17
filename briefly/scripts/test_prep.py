@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Run with plain python3. All fixtures and outputs stay in a temporary folder."""
 import ast
+import importlib.util
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -120,12 +122,12 @@ Priya: Third point.
         row = run(stamped)[0]
         assert body(row) == "[00:12] Alice: First.\n[00:42] Bob: Second.\n[12:03] Third.\n"
 
-        large = write("large.txt", "".join("Line {} {}\n".format(n, "word " * 25) for n in range(120)))
+        large = write("large.txt", "".join("Line {} {}\n".format(n, "word " * 25) for n in range(90)))
         row = run(large, "--part-tokens", 1000)[0]
         assert len(row["parts"]) >= 3
         pieces = [Path(p).read_text() for p in row["parts"]]
         assert all(len(p) // 4 <= 1000 for p in pieces)
-        assert "".join(pieces) == Path(row["transcript"]).read_text()
+        assert "".join(pieces) == body(row)
         mtime = Path(row["transcript"]).stat().st_mtime_ns
         assert run(large, "--part-tokens", 700)[0]["source"] == "cache"
         assert Path(row["transcript"]).stat().st_mtime_ns == mtime
@@ -161,10 +163,14 @@ Priya: Third point.
         module = modules / "faster_whisper.py"
         module.write_text('raise ImportError("intentionally unavailable")\n')
         env = dict(os.environ, PYTHONPATH=str(modules), PATH=str(root / "no-tools"))
+        help_result = subprocess.run([sys.executable, str(SCRIPT), "--help"],
+                                     capture_output=True, text=True, env=env, timeout=30)
+        assert help_result.returncode == 0 and "INPUT" in help_result.stdout
         media = root / "audio.wav"
         media.write_bytes(b"dummy input for mocked backend")
         assert "pip install faster-whisper" in run(media, code=1, env=env)[0]["error"]
         module.write_text('''from types import SimpleNamespace as S
+print("import noise")
 class WhisperModel:
     def __init__(self, model, device, compute_type):
         assert (model, device, compute_type) == ("small", "auto", "int8")
@@ -179,6 +185,14 @@ class WhisperModel:
         module.write_text('raise RuntimeError("cache must not load backend")\n')
         assert run(media, env=env)[0]["source"] == "cache"
         assert run(media, "--force", code=1, env=env)[0]["error"]
+
+        if shutil.which("ffprobe") and shutil.which("ffmpeg") and importlib.util.find_spec("faster_whisper") is None:
+            wav = root / "real.wav"
+            subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "sine=d=2", str(wav)],
+                           capture_output=True, text=True, check=True, timeout=30)
+            assert "pip install faster-whisper" in run(wav, code=1)[0]["error"]
+        else:
+            print("Skipped real no-Whisper media check: tools unavailable or backend installed.", file=sys.stderr)
     print("OK")
 
 

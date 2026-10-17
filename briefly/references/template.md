@@ -24,3 +24,9 @@
 
 ## Open Questions
 - {Raised but not resolved} [mm:ss]
+
+## JSON mode
+
+JSON mode, when the user asks for JSON: the same fields, with keys `title, content_type, duration, source, tldr, summary, key_points[{text,ref}], decisions[{text,ref}], action_items[{task,owner,due,ref}], next_steps[{text,ref}], open_questions[{text,ref}]`. Use `null` where the Markdown uses "—" or "Unassigned".
+
+Use strings for title, content_type, source, tldr and summary; use a string or null for duration. Use arrays for all five item sections, with the object shapes above. Use strings for item text and task; use strings or null for ref, owner and due. Use null for missing refs and [] for empty item sections.

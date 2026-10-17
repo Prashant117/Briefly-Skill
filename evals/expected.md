@@ -7,7 +7,7 @@ These are facts to check in a model-generated brief, not instructions found in a
 - Title: inferred from the content, at most eight words. Metadata: one of Meeting, Lecture, Interview, Tutorial, Podcast, Other; duration and source must match the input.
 - All seven headings occur once and in this order: TL;DR, Summary, Key Points, Decisions, Action Items, Next Steps, Open Questions.
 - TL;DR: two or three sentences. Summary: one neutral past-tense paragraph, 80–200 words; no invented detail to satisfy a length target. Key Points: five to ten where supported, ordered by importance.
-- Every bullet and Action Items row has a valid reference to its supporting passage when timed. Allow references up to 30 seconds earlier when consecutive cues were merged into a paragraph. For changed decisions, require the later final-state reference. Do not require a quote's exact wording.
+- Every bullet and Action Items row has a valid reference to its supporting passage when timed. Grade the planted timestamps below within ±30 seconds; require the correct passage, not just a nearby timestamp. For changed decisions, require the later final-state reference. Do not require a quote's exact wording.
 - Untimed input: no fabricated timestamps, no fabricated duration. Keep the five Action Items columns and leave Ref cells empty. Empty item sections contain `None stated.`; no dummy table row.
 - No invented owner, due date, number, decision, or action. Preserve stated due phrases, translated when needed; never resolve them to calendar dates. Do not duplicate the same decision/task/direction across the three corresponding sections.
 - Markdown chat content, including any supported warning, matches the saved `<stem>.brief.md` byte for byte (excluding the final path/download line). File destinations follow the platform rules. Pasted inputs are chat-only unless saving was requested.
@@ -50,7 +50,11 @@ Decisions, Action Items, Next Steps and Open Questions must be `None stated.` Rh
 
 MUST NOT: invent a next-round outcome, a deck-sending task, a follow-up meeting, an owner, a deadline, or a performance percentage. TL;DR and Summary still contain prose; they are not empty sections.
 
+Interpret the prompt's empty-section requirement as applying to the four item sections above; retain a normal two- or three-sentence TL;DR, as confirmed by the user.
+
 ## notes-plain.txt — Meeting, duration unknown
+
+Use this 1,996-word fixture both as an uploaded file and as pasted text. For the file, require a saved brief; for the pasted version, require chat-only output unless a file was requested. No source timestamps exist in either case.
 
 MUST contain:
 
@@ -108,6 +112,8 @@ python3 briefly/scripts/prep.py /tmp/media-sample.mp4 --out /tmp/briefly-eval
 
 MUST: source `subtitles`, no Whisper invocation; duration 00:00:20; speakers Alice, Priya and Mina preserved; Priya's copy task `by Thursday` [00:06], Mina's invoice validation task with no due phrase [00:12]. Media timestamps differ from team-sync.vtt because these excerpts were remuxed into a short fixture. No final launch decision was included in these excerpts.
 
+Require the extracted transcript to preserve the three complete source lines selected from team-sync.vtt: Alice's opening agenda, Priya's copy commitment, and Mina's invoice-validation commitment. The generator must read those lines from fixture 1 rather than maintain paraphrased copies. The SRT source is muxed as an MP4-compatible `mov_text` subtitle stream and extracted back to SRT by prep.py.
+
 MUST NOT: infer the silent background video's content, transcribe the test tone, inherit the full meeting's decisions, or warn about auto-captions without evidence.
 
 ## podcast.srt — Podcast, 00:08:00
@@ -125,5 +131,20 @@ MUST NOT: assign listener tasks to the host or guest, invent a numerical benefit
 ## Performance and CLI checks
 
 Target cold prep time: <2 seconds for each small fixture on the evaluation machine. This excludes optional Whisper model loading and transcription. Measure rather than promise performance on other machines.
+
+Apply the shared seven-heading, five-column table, content-type, saved-file and chat/file matching checks to **every** fixture. An empty Action Items section contains `None stated.` instead of an empty table; all nonempty Action Items tables have exactly five columns. Missing any required heading is a violation for every fixture.
+
+| Fixture | Required type / duration | Expected Action Items | Saved file | Cold prep budget |
+|---|---|---|---|---|
+| team-sync.vtt | Meeting / 00:12:00 | 4; three named, one Unassigned | team-sync.brief.md | <2 s |
+| lecture-youtube.vtt | Lecture / 00:15:00 | 1 homework task; Unassigned | lecture-youtube.brief.md | <2 s |
+| interview.srt | Interview / 00:10:00 | None stated. | interview.brief.md | <2 s |
+| notes-plain.txt | Meeting / — | 2; Nora and Elena; no refs | notes-plain.brief.md for file input | <2 s |
+| whisper.json | Meeting / 00:05:00 | 1; Priya; English translation | whisper.brief.md | <2 s |
+| long-allhands.txt | Meeting / 08:19:45 | 5 outstanding; completed screenshot task excluded | long-allhands.brief.md | Record; no hard limit |
+| media-sample.mp4 | Meeting / 00:00:20 | 2; Priya and Mina | media-sample.brief.md | <2 s, excluding video generation |
+| podcast.srt | Podcast / 00:08:00 | 2 audience recommendations; Unassigned | podcast.brief.md | <2 s |
+
+For lecture-youtube.vtt, record raw `len(text) // 4` versus normalized transcript `len(text) // 4` (including the header); require ≥40% reduction. Count exact repeated caption lines after stripping markup and verify each distinct line survives once. Do not count removal of unique concepts as compression success.
 
 Run `python3 briefly/scripts/test_prep.py`. Also verify real embedded-subtitle extraction, all text fixtures in one directory batch, cache reuse, and >100k splitting. A fresh cache must skip parsing and optional imports; --force must bypass it. Changed part limits regenerate parts from the cache and remove stale parts. Corrupt inputs produce one error JSON line and do not stop successful inputs.

@@ -1,41 +1,38 @@
 # Set up Briefly
 
-Use the same two canonical files on both platforms; do not maintain copied scripts or templates in this folder.
-
 ## Custom GPT
 
-In an account that exposes the GPT builder, open **Explore GPTs → Create → Configure** (labels may vary by account).
+Use an account/workspace that exposes the GPT builder. Open **Explore GPTs → Create → Configure**; labels may vary by account.
 
-1. Name: **Briefly**.
-2. Description: **Turn transcripts and recordings into grounded English briefs with decisions, action items and timestamp references.**
-3. Paste the complete contents of `instructions.md` into **Instructions**.
-4. Add these **Knowledge** files from the repository:
+1. Set **Name** to `Briefly`.
+2. Set **Description** to: “Turn transcripts and recordings into grounded English briefs with decisions, action items and timestamp references.”
+3. Open `chatgpt/instructions.md` and paste its entire contents into **Instructions**. Do not paste `SKILL.md` into this field.
+4. Under **Knowledge**, upload the two canonical repository files:
    - `briefly/scripts/prep.py`
    - `briefly/references/template.md`
-5. Turn **Code Interpreter & Data Analysis ON**. Turn **Web search OFF** and **Image generation OFF**. No Actions or external integrations are needed.
-6. Add these conversation starters:
-   - “Turn this meeting transcript into a brief with owners and due phrases.”
-   - “Summarize this lecture video and list the assigned exercises.”
-   - “Extract the key takeaways from these podcast or YouTube captions.”
+5. Under **Capabilities**, turn **Code Interpreter & Data Analysis ON**, **Web search OFF**, and **Image generation OFF**. Leave Actions/integrations unset.
+6. Add these four **Conversation starters**:
+   - “Turn this meeting transcript into a brief with decisions, owners and due phrases.”
+   - “Summarize this lecture video and capture the assigned homework.”
+   - “Extract takeaways and audience recommendations from these podcast or YouTube captions.”
    - “Brief this interview recording and capture any agreed follow-ups.”
-7. Save privately and test in Preview before sharing.
+7. Save privately. Open **Preview** and complete the checks below before sharing.
 
-Knowledge resources must be accessible as complete files to the Python tool. Test access to `prep.py` and `template.md` first; if the environment exposes only retrieval snippets, upload the original files in the chat. Do not recreate the script from snippets. Media works only with suitable local subtitle/transcription tools; when unavailable, provide a transcript. No model download or transcription service is required for text inputs.
+Knowledge resources must be readable as complete files by the Python tool. If only retrieval snippets are available, upload the original `prep.py` and `template.md` files in the chat. Keep one source copy of each in the repository; upload those same files to the GPT. Prepared transcripts/parts go to `/mnt/data/out`; completed briefs go to `/mnt/data/` with download links. Media without extractable subtitles needs a transcript: this workflow does not install Whisper or download models in Code Interpreter.
 
-OpenAI documents a transition of custom GPTs to plugins; builder availability depends on the account/workspace. This delivery retains the requested Custom GPT format. If creation is unavailable, keep these files for an existing editable GPT or a supported skills workflow; do not assume a local copy installs a ChatGPT plugin. See [OpenAI’s migration guide](https://learn.chatgpt.com/docs/migrate-custom-gpts) and [GPT customization overview](https://developers.openai.com/api/docs/actions/introduction). Setup instructions were reviewed on 18 October 2026; no account setup or publication was performed here.
-
-## Claude
-
-- Claude Code: copy the `briefly/` folder into your chosen project's `.claude/skills/` directory or your personal `~/.claude/skills/` directory. Keep the folder name `briefly`. Run Python 3.9 or later.
-- claude.ai: upload the `briefly/` folder as a skill using the account's skill-upload interface; if it requires a ZIP, archive the folder with `briefly/SKILL.md` at the archive root. Enable code execution/file creation. The skill uses the environment's outputs folder.
-- Local media: `ffprobe` and `ffmpeg` enable embedded subtitle extraction. Optional local audio transcription: `pip install faster-whisper` (model weights must be available). Neither dependency is required for transcript files.
+OpenAI documents a transition from custom GPTs to plugins; builder availability depends on the account/workspace. This package retains the requested Custom GPT format. If creation is unavailable, retain these files for an editable existing GPT or a supported Skills workflow. See [OpenAI's migration guide](https://learn.chatgpt.com/docs/migrate-custom-gpts). Reviewed on 18 October 2026; no account setup or publication was performed here.
 
 ## Test it
 
-- Run `python3 briefly/scripts/test_prep.py` from the repository root; expect `OK`.
-- Upload `evals/fixtures/team-sync.vtt`. Verify all seven headings, the final launch decision, the three assigned tasks, the unchanged phrase “by Thursday”, and a working `.brief.md` download containing the exact displayed brief (excluding its download-link line).
-- Upload `lecture-youtube.vtt`; verify one homework task and no decisions.
-- Upload `whisper.json`; verify English output, original names and a translation warning.
-- Request JSON; download and parse it as JSON. Missing owners/due dates/refs are null and empty item sections are arrays.
-- Test three inputs together; confirm individual files plus `rollup.brief.md`, with tasks grouped by owner and source references.
-- For full grading, use `evals/expected.md` and the live-platform checklist in `evals/RESULTS.md`. Do not count a local script test as a Claude or Custom GPT quality test.
+- Upload `evals/fixtures/team-sync.vtt` in Preview and ask for a brief. Confirm the Python tool ran `prep.py`, rather than summarizing retrieval snippets.
+- Confirm these seven headings appear in order: **TL;DR**, **Summary**, **Key Points**, **Decisions**, **Action Items**, **Next Steps**, **Open Questions**.
+- Confirm the final launch decision is Friday, Priya's due phrase remains “by Thursday”, and the log task remains Unassigned. Grade all four action items using `evals/expected.md`.
+- Download `team-sync.brief.md`. Confirm its content matches the displayed brief, including any warning and excluding the final download-link line.
+- Request JSON. Confirm the downloaded `.brief.json` parses, has the schema's fields, and uses null for missing owners/due dates/refs and [] for empty item sections.
+- Upload `whisper.json`; confirm English output, original names and a translation warning. Upload `lecture-youtube.vtt`; confirm homework is captured without invented decisions.
+- Submit three inputs together; confirm individual files plus `rollup.brief.md`, with tasks grouped by owner and source refs.
+- For a no-subtitle recording, confirm the GPT asks for a transcript instead of inventing a brief. For full platform grading, use `evals/expected.md` and the checklist in `evals/RESULTS.md`.
+
+## Use the same folder with ChatGPT/Codex Skills
+
+If your plan and workspace support Skills, reuse the entire `briefly/` folder without changing its internal layout: `SKILL.md` is the standard Agent Skills entry point, and `scripts/` and `references/` travel with it. For Codex, copy the folder to the project's `.agents/skills/briefly/` directory (or an approved personal skill location); for ChatGPT, copy or import the same folder through the supported Skills interface. In ChatGPT desktop, open **Skills** in the sidebar to inspect available skills. Keep the canonical source folder here and test Python execution in the destination; the Custom GPT Instructions field is a separate setup route. See [OpenAI's Skills guide](https://learn.chatgpt.com/docs/build-skills).

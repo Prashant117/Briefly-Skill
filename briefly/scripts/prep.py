@@ -39,7 +39,7 @@ def clock(value, hours=False):
             if hours else "{:02d}:{:02d}".format(value // 60, value % 60))
 
 
-def lines(raw, start=None, end=None, speaker=None, markup=True):
+def lines(raw, metadata, start=None, end=None, speaker=None, markup=True):
     for line in raw.splitlines():
         spans = re.split(r"(<v(?:\.[^\s>]+)*\s+[^>]+>|</v>)", line) if markup else [line]
         for span in spans:
@@ -52,10 +52,11 @@ def lines(raw, start=None, end=None, speaker=None, markup=True):
             if name:
                 speaker, text = name[1].strip(), name[2]
             if text:
-                yield start, end, speaker, text
+                metadata["ends"].append(end)
+                yield start, speaker, text
 
 
-def subtitles(raw):
+def subtitles(raw, metadata):
     segments, duration = [], 0
     raw = raw.replace("\r\n", "\n").replace("\r", "\n").lstrip("\ufeff")
     for block in re.split(r"\n\s*\n", raw.strip()):
@@ -72,24 +73,26 @@ def subtitles(raw):
         if end < start:
             raise ValueError("Subtitle ends before it starts")
         duration = max(duration, end)
-        segments.extend(lines("\n".join(cue[timing + 1:]), start, end))
+        segments.extend(lines("\n".join(cue[timing + 1:]), metadata, start, end))
     if not segments:
         raise ValueError("No subtitle cues with text found")
-    return segments, duration
+    metadata.update(duration=duration, source="subtitles")
+    return segments
 
 
-def plain(raw):
+def plain(raw, metadata):
     segments, duration = [], None
     for line in raw.splitlines():
         match = STAMP.match(line)
         start = seconds(match[1]) if match else None
         if start is not None:
             duration = max(duration or 0, start)
-        segments.extend(lines(match[2] if match else line, start, start, markup=False))
-    return segments, duration
+        segments.extend(lines(match[2] if match else line, metadata, start, start, markup=False))
+    metadata["duration"] = duration
+    return segments
 
 
-def json_segments(data):
+def json_segments(data, metadata):
     items = data.get("segments") if isinstance(data, dict) else data
     if not isinstance(items, list):
         raise ValueError("JSON must be a segment list or an object with segments")
@@ -102,32 +105,34 @@ def json_segments(data):
         if speaker is not None and not isinstance(speaker, str):
             raise ValueError("Segment speaker must be a string or null")
         duration = max(duration, end)
-        segments.extend(lines(item["text"], start, end, speaker))
-    return segments, duration
+        segments.extend(lines(item["text"], metadata, start, end, speaker))
+    metadata["duration"] = duration
+    return segments
 
 
-def whisper(path, model):
-    try:
-        from faster_whisper import WhisperModel
-    except ImportError:
-        raise ValueError(MISSING_WHISPER) from None
-    segments, duration, report = [], 0, 60
+def whisper(path, model, metadata):
     # Third-party model messages must never contaminate the JSON protocol.
     with contextlib.redirect_stdout(sys.stderr):
+        try:
+            from faster_whisper import WhisperModel
+        except ImportError:
+            raise ValueError(MISSING_WHISPER) from None
+        segments, duration, report = [], 0, 60
         engine = WhisperModel(model, device="auto", compute_type="int8")
         stream, info = engine.transcribe(str(path), vad_filter=True, beam_size=1)
         for segment in stream:
             start, end = seconds(segment.start), seconds(segment.end)
-            segments.extend(lines(segment.text, start, end))
+            segments.extend(lines(segment.text, metadata, start, end))
             duration = max(duration, end)
             if end >= report:
                 print("Transcribed " + clock(end, True), file=sys.stderr)
                 report = (int(end) // 60 + 1) * 60
         duration = max(duration, seconds(info.duration))
-    return segments, duration, "whisper"
+    metadata.update(duration=duration, source="whisper")
+    return segments
 
 
-def media(path, model):
+def media(path, model, metadata):
     if shutil.which("ffprobe") and shutil.which("ffmpeg"):
         try:
             probe = subprocess.run(
@@ -140,21 +145,22 @@ def media(path, model):
                 result = subprocess.run(
                     ["ffmpeg", "-v", "error", "-i", str(path), "-map", "0:s:0", "-f", "srt", "-"],
                     capture_output=True, text=True, timeout=300, check=True)
-                segments, duration = subtitles(result.stdout)
+                segments = subtitles(result.stdout, metadata)
                 try:
-                    duration = max(duration, seconds(info["format"]["duration"]))
+                    metadata["duration"] = max(metadata["duration"], seconds(info["format"]["duration"]))
                 except (KeyError, ValueError, TypeError):
                     pass
-                return segments, duration, "subtitles"
+                return segments
         except (subprocess.SubprocessError, ValueError) as exc:
             print("Subtitle extraction unavailable: " + str(exc), file=sys.stderr)
-    return whisper(path, model)
+    metadata["ends"].clear()
+    return whisper(path, model, metadata)
 
 
-def parse(path, model):
+def parse(path, model, metadata):
     suffix = path.suffix.lower()
     if suffix in MEDIA:
-        return media(path, model)
+        return media(path, model, metadata)
     if suffix == ".docx":
         with zipfile.ZipFile(path) as doc:
             root = ET.fromstring(doc.read("word/document.xml"))
@@ -165,16 +171,15 @@ def parse(path, model):
     else:
         raw = path.read_text(encoding="utf-8-sig")
     if suffix in {".vtt", ".srt"}:
-        segments, duration = subtitles(raw)
-        return segments, duration, "subtitles"
-    segments, duration = json_segments(json.loads(raw)) if suffix == ".json" else plain(raw)
-    return segments, duration, "text"
+        return subtitles(raw, metadata)
+    return json_segments(json.loads(raw), metadata) if suffix == ".json" else plain(raw, metadata)
 
 
-def normalize(segments, duration, filename, dedupe=False):
+def normalize(segments, metadata, filename):
+    duration = metadata["duration"]
     paragraphs, previous = [], None
-    for start, end, speaker, text in segments:
-        if dedupe and text == previous:
+    for (start, speaker, text), end in zip(segments, metadata["ends"]):
+        if metadata["source"] == "subtitles" and text == previous:
             continue
         previous = text
         if (paragraphs and start is not None and paragraphs[-1][0] is not None
@@ -203,7 +208,7 @@ def split(text, limit):
     if len(text) // 4 <= limit:
         return []
     parts, current = [], ""
-    for line in text.splitlines(keepends=True):
+    for line in text.partition("\n")[2].splitlines(keepends=True):
         if len(line) // 4 > limit:
             raise ValueError("A transcript line exceeds --part-tokens; increase the limit")
         if current and len(current + line) // 4 > limit:
@@ -257,8 +262,10 @@ def main():
                 duration = match[1] if match and match[1] != "null" else None
                 source = "cache"
             else:
-                segments, duration, source = parse(path, args.model)
-                text, duration = normalize(segments, duration, path.name, path.suffix.lower() in {".srt", ".vtt"} or source == "subtitles")
+                metadata = dict(duration=None, ends=[], source="text")
+                segments = parse(path, args.model, metadata)
+                source = metadata["source"]
+                text, duration = normalize(segments, metadata, path.name)
             chunks = split(text, args.part_tokens)
             parts = [output.parent / (path.stem + ".part{:02d}.txt".format(i)) for i in range(1, len(chunks) + 1)]
             if any(p in input_set for p in parts):
