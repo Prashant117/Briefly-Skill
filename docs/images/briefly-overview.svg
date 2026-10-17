@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 340" width="1000" height="340" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title>Briefly: recordings and transcripts in, a structured English brief out</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect width="1000" height="340" rx="18" fill="#f8fafc"/>
+  <text x="40" y="52" font-size="26" font-weight="700" fill="#0f172a">Briefly</text>
+  <text x="140" y="52" font-size="16" fill="#475569">recordings &amp; transcripts in → grounded English brief out</text>
+
+  <!-- 1. Inputs -->
+  <rect x="40" y="88" width="200" height="210" rx="14" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="60" y="120" font-size="15" font-weight="700" fill="#0f172a">1 · Input</text>
+  <text x="60" y="150" font-size="13" fill="#334155">Transcripts</text>
+  <text x="60" y="170" font-size="12" fill="#64748b">.vtt .srt .txt .md</text>
+  <text x="60" y="188" font-size="12" fill="#64748b">.json .docx · pasted text</text>
+  <text x="60" y="218" font-size="13" fill="#334155">Recordings</text>
+  <text x="60" y="238" font-size="12" fill="#64748b">.mp4 .mov .mkv .webm</text>
+  <text x="60" y="256" font-size="12" fill="#64748b">.mp3 .m4a .wav …</text>
+  <text x="60" y="282" font-size="12" fill="#64748b">Zoom · Teams · Meet · YouTube</text>
+
+  <line x1="246" y1="193" x2="284" y2="193" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- 2. prep.py -->
+  <rect x="290" y="88" width="200" height="210" rx="14" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="310" y="120" font-size="15" font-weight="700" fill="#1e3a8a">2 · prep.py</text>
+  <text x="310" y="150" font-size="13" fill="#1e40af">Embedded subtitles first</text>
+  <text x="310" y="172" font-size="13" fill="#1e40af">Local Whisper if needed</text>
+  <text x="310" y="194" font-size="13" fill="#1e40af">Clean + dedupe captions</text>
+  <text x="310" y="216" font-size="13" fill="#1e40af">[mm:ss] Speaker: text</text>
+  <text x="310" y="238" font-size="13" fill="#1e40af">Split into ~20k parts</text>
+  <text x="310" y="260" font-size="13" fill="#1e40af">Cache re-runs</text>
+  <text x="310" y="284" font-size="12" fill="#3b82f6">stdlib only · Python 3.9+</text>
+
+  <line x1="496" y1="193" x2="534" y2="193" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- 3. Model -->
+  <rect x="540" y="88" width="200" height="210" rx="14" fill="#f5f3ff" stroke="#c4b5fd"/>
+  <text x="560" y="120" font-size="15" font-weight="700" fill="#4c1d95">3 · Claude / ChatGPT</text>
+  <text x="560" y="150" font-size="13" fill="#5b21b6">One pass ≤ 100k tokens</text>
+  <text x="560" y="172" font-size="13" fill="#5b21b6">Map-reduce above that</text>
+  <text x="560" y="194" font-size="13" fill="#5b21b6">Cite every item [mm:ss]</text>
+  <text x="560" y="216" font-size="13" fill="#5b21b6">Never invent owners/dates</text>
+  <text x="560" y="238" font-size="13" fill="#5b21b6">Final state wins</text>
+  <text x="560" y="260" font-size="13" fill="#5b21b6">Always English</text>
+  <text x="560" y="284" font-size="12" fill="#7c3aed">rules in SKILL.md</text>
+
+  <line x1="746" y1="193" x2="784" y2="193" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- 4. Brief -->
+  <rect x="790" y="88" width="170" height="210" rx="14" fill="#ecfdf5" stroke="#6ee7b7"/>
+  <text x="810" y="120" font-size="15" font-weight="700" fill="#064e3b">4 · Brief</text>
+  <text x="810" y="148" font-size="13" fill="#065f46">TL;DR</text>
+  <text x="810" y="168" font-size="13" fill="#065f46">Summary</text>
+  <text x="810" y="188" font-size="13" fill="#065f46">Key Points</text>
+  <text x="810" y="208" font-size="13" fill="#065f46">Decisions</text>
+  <text x="810" y="228" font-size="13" fill="#065f46">Action Items</text>
+  <text x="810" y="248" font-size="13" fill="#065f46">Next Steps</text>
+  <text x="810" y="268" font-size="13" fill="#065f46">Open Questions</text>
+  <text x="810" y="288" font-size="12" fill="#059669">chat + .brief.md</text>
+</svg>

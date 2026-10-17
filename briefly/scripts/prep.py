@@ -257,11 +257,11 @@ def generated(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("inputs", metavar="INPUT", nargs="+")
-    parser.add_argument("--out", type=Path)
-    parser.add_argument("--part-tokens", type=int, default=20000)
-    parser.add_argument("--model", default="small")
-    parser.add_argument("--force", action="store_true")
+    parser.add_argument("inputs", metavar="INPUT", nargs="+", help="transcript/media files or folders (non-recursive)")
+    parser.add_argument("--out", type=Path, help="output folder (default: next to each input)")
+    parser.add_argument("--part-tokens", type=int, default=20000, help="max estimated tokens per part file (default: 20000)")
+    parser.add_argument("--model", default="small", help="faster-whisper model for media without subtitles (default: small)")
+    parser.add_argument("--force", action="store_true", help="ignore the cached transcript and rebuild it")
     args = parser.parse_args()
     if args.part_tokens < 1:
         parser.error("--part-tokens must be positive")
