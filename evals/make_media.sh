@@ -24,6 +24,6 @@ for i, (speaker, prefix, start, end) in enumerate(excerpts, 1):
         i, start, end, speaker, matches[0]))
 Path(sys.argv[2]).write_text("\n".join(cues))
 PY
-ffmpeg -v error -n -f lavfi -i 'color=c=black:s=160x90:r=1:d=20' \
+ffmpeg -v error -y -f lavfi -i 'color=c=black:s=160x90:r=1:d=20' \
   -f lavfi -i 'sine=frequency=440:duration=20' -i "$scratch/captions.srt" \
   -map 0:v -map 1:a -map 2:s -c:v mpeg4 -c:a aac -c:s mov_text -t 20 "$output"

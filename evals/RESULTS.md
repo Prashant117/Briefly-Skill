@@ -33,6 +33,23 @@ Prep times are cold wall-clock times for `prep.py` alone, not model response tim
 
 One-off slip, no rule added: the podcast's "before joining the call" first landed in the task text instead of the Due column.
 
+## Repo audit fixes (second pass)
+
+Found by probing `prep.py` with real-world inputs. Each fix has a regression test, and every fixture's transcript is byte-for-byte unchanged.
+
+1. **Encoding:** Windows-1252 and UTF-16 subtitle/text files failed with a UTF-8 decode error. They now decode correctly.
+2. **Media + transcript pairs:** a folder with `lecture.m4a` and `lecture.srt` failed on both files, because of an output-name collision. The media file is now skipped in favour of its transcript.
+3. **JSON errors:** malformed segments gave `'text'` or `string indices must be integers`. They now give "Each JSON segment needs start, end and text".
+4. **Zoom text export:** `[Alice] 00:01:02` headings kept the brackets in the speaker name.
+5. **Test coverage:** added a real embedded-subtitle MP4 test. It proves Whisper is never loaded when subtitles exist.
+6. **Docs:**
+   - SKILL.md runs the script by its full path, so no change of directory is needed.
+   - SETUP.md pointed to the wrong checklist file, and it now states the custom-GPT retirement plainly.
+   - `make_media.sh` can be re-run.
+   - README explains how to build `briefly.zip`, which is git-ignored.
+
+Verified externally: OpenAI's [migration guide](https://learn.chatgpt.com/docs/migrate-custom-gpts) says custom GPTs are moving to plugins and stop running at retirement (no date given). Codex loads skills from `.agents/skills/` ([Build skills](https://learn.chatgpt.com/docs/build-skills)).
+
 ## Trigger review
 
 15 of 15 queries in `trigger-queries.md` route correctly, judged from the SKILL.md description. The description is unchanged. This is a review of the wording, not an observed routing test.

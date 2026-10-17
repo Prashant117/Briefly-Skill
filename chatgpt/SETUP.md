@@ -20,7 +20,7 @@ Use an account/workspace that exposes the GPT builder. Open **Explore GPTs → C
 
 Knowledge resources must be readable as complete files by the Python tool. If only retrieval snippets are available, upload the original `prep.py` and `template.md` files in the chat. Keep one source copy of each in the repository; upload those same files to the GPT. Prepared transcripts/parts go to `/mnt/data/out`; completed briefs go to `/mnt/data/` with download links. Media without extractable subtitles needs a transcript: this workflow does not install Whisper or download models in Code Interpreter.
 
-OpenAI documents a transition from custom GPTs to plugins; builder availability depends on the account/workspace. This package retains the requested Custom GPT format. If creation is unavailable, retain these files for an editable existing GPT or a supported Skills workflow. See [OpenAI's migration guide](https://learn.chatgpt.com/docs/migrate-custom-gpts). Reviewed on 18 October 2026; no account setup or publication was performed here.
+OpenAI is transitioning custom GPTs to plugins (packages of skills/apps); at retirement, custom GPTs stop running. Builder availability depends on the account/workspace. The `briefly/` folder is already a skill, so it is the long-term route (see the last section). This package retains the requested Custom GPT format. If creation is unavailable, retain these files for an editable existing GPT or a supported Skills workflow. See [OpenAI's migration guide](https://learn.chatgpt.com/docs/migrate-custom-gpts). Reviewed on 18 October 2026; no account setup or publication was performed here.
 
 ## Test it
 
@@ -31,7 +31,7 @@ OpenAI documents a transition from custom GPTs to plugins; builder availability 
 - Request JSON. Confirm the downloaded `.brief.json` parses, has the schema's fields, and uses null for missing owners/due dates/refs and [] for empty item sections.
 - Upload `whisper.json`; confirm English output, original names and a translation warning. Upload `lecture-youtube.vtt`; confirm homework is captured without invented decisions.
 - Submit three inputs together; confirm individual files plus `rollup.brief.md`, with tasks grouped by owner and source refs.
-- For a no-subtitle recording, confirm the GPT asks for a transcript instead of inventing a brief. For full platform grading, use `evals/expected.md` and the checklist in `evals/RESULTS.md`.
+- For a no-subtitle recording, confirm the GPT asks for a transcript instead of inventing a brief. For full platform grading, use `evals/expected.md` and the checklist in `evals/chatgpt-manual-test.md`.
 
 ## Use the same folder with ChatGPT/Codex Skills
 

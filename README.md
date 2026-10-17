@@ -5,7 +5,7 @@ Turn transcripts and video/audio recordings into grounded English briefs with ti
 ## Install
 
 - **Claude Code:** run `mkdir -p ~/.claude/skills && cp -R briefly ~/.claude/skills/` from this folder. Ask Claude to use Briefly on your transcript or recording.
-- **claude.ai:** upload `briefly.zip` through **Settings → Capabilities → Skills → Upload**, where available. Enable code execution and file creation.
+- **claude.ai:** build the zip with `zip -r briefly.zip briefly -x '*/__pycache__/*'`, then upload `briefly.zip` through **Settings → Capabilities → Skills → Upload**, where available. Enable code execution and file creation.
 - **ChatGPT Custom GPT:** follow [chatgpt/SETUP.md](chatgpt/SETUP.md). Paste `chatgpt/instructions.md` into Instructions, upload the canonical `prep.py` and `template.md` as Knowledge, and enable Code Interpreter & Data Analysis.
 
 ## Local use and checks

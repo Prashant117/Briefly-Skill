@@ -31,7 +31,7 @@ Briefly/
 python3 prep.py INPUT [INPUT ...] [--out DIR] [--part-tokens 20000] [--model small] [--force]
 ```
 
-- `INPUT` is a file or a directory. A directory means every supported file inside it, non-recursive.
+- `INPUT` is a file or a directory. A directory means every supported file inside it, non-recursive. In a directory, a media file is skipped when a transcript file with the same stem sits beside it (`lecture.mp4` + `lecture.srt` → use the `.srt`).
 - Supported text inputs: `.txt .md .vtt .srt .json .docx`
 - Supported media inputs: `.mp4 .mov .mkv .webm .m4v .mp3 .m4a .wav .aac .flac .ogg`
 - `--out` defaults to the directory of each input.

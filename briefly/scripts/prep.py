@@ -87,7 +87,7 @@ def heading(line):
     words = match[1].split() if match else []
     if match and len(words) <= 4 and not re.search(r"[.,;:!?]$", match[1]) \
             and not any(w[0].islower() for w in words):
-        return seconds(match[2]), match[1] or None
+        return seconds(match[2]), match[1].strip("[]") or None
     return None
 
 
@@ -115,14 +115,18 @@ def json_segments(data, metadata):
         raise ValueError("JSON must be a segment list or an object with segments")
     segments, duration = [], 0
     for item in items:
-        start, end = seconds(item["start"]), seconds(item["end"])
-        if end < start or not isinstance(item["text"], str):
+        try:
+            start, end = seconds(item["start"]), seconds(item["end"])
+            text = item["text"]
+        except (KeyError, TypeError):
+            raise ValueError("Each JSON segment needs start, end and text") from None
+        if end < start or not isinstance(text, str):
             raise ValueError("Invalid segment end or text")
         speaker = item.get("speaker")
         if speaker is not None and not isinstance(speaker, str):
             raise ValueError("Segment speaker must be a string or null")
         duration = max(duration, end)
-        segments.extend(lines(item["text"], metadata, start, end, speaker))
+        segments.extend(lines(text, metadata, start, end, speaker))
     metadata["duration"] = duration
     return segments
 
@@ -174,6 +178,16 @@ def media(path, model, metadata):
     return whisper(path, model, metadata)
 
 
+def decode(data):
+    # Old/Windows subtitle files are often UTF-16 or cp1252, not UTF-8.
+    if data[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        return data.decode("utf-16")
+    try:
+        return data.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return data.decode("cp1252", errors="replace")
+
+
 def parse(path, model, metadata):
     suffix = path.suffix.lower()
     if suffix in MEDIA:
@@ -186,7 +200,7 @@ def parse(path, model, metadata):
                                  for node in p.iter() if node.tag in {ns + "t", ns + "tab", ns + "br"})
                         for p in root.iter(ns + "p"))
     else:
-        raw = path.read_text(encoding="utf-8-sig")
+        raw = decode(path.read_bytes())
     if suffix in {".vtt", ".srt"}:
         return subtitles(raw, metadata)
     return json_segments(json.loads(raw), metadata) if suffix == ".json" else plain(raw, metadata)
@@ -257,6 +271,11 @@ def main():
         try:
             children = sorted(p for p in path.iterdir() if p.is_file()
                               and p.suffix.lower() in TEXT | MEDIA and not generated(p)) if path.is_dir() else [path]
+            # lecture.mp4 + lecture.srt is one recording: use the transcript, skip slow media.
+            stems = {p.stem for p in children if p.suffix.lower() in TEXT}
+            for skipped in [p for p in children if p.suffix.lower() in MEDIA and p.stem in stems]:
+                print("Skipping {}: using its transcript file instead".format(skipped.name), file=sys.stderr)
+                children.remove(skipped)
             inputs.extend(children or [path])
         except OSError:
             inputs.append(path)

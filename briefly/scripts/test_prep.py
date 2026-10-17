@@ -129,6 +129,15 @@ Priya: Third point.
         meet = write("meet.txt", "00:05:00\nAlice: Agreed.\nBob: Ok.\n[00:06:00] Cara: Next.\nUntimed.\n")
         assert body(run(meet)[0]) == "[05:00] Alice: Agreed.\n[05:00] Bob: Ok.\n[06:00] Cara: Next.\nUntimed.\n"
 
+        zoom = write("zoom.txt", "[Alice] 00:01:02\nHello all\n")
+        assert body(run(zoom)[0]) == "[01:02] Alice: Hello all\n"
+        (root / "cp1252.srt").write_bytes(b"1\n00:00:00,000 --> 00:00:02,000\nJos\xe9: Caf\xe9.\n")
+        assert body(run(root / "cp1252.srt")[0]) == "[00:00] Jos\u00e9: Caf\u00e9.\n"
+        (root / "utf16.srt").write_text("1\n00:00:00,000 --> 00:00:02,000\nHello.\n", encoding="utf-16")
+        assert body(run(root / "utf16.srt")[0]) == "[00:00] Hello.\n"
+        for bad in ('[{"start": 0, "end": 1}]', '["text"]'):
+            assert "needs start, end and text" in run(write("bad-seg.json", bad), code=1)[0]["error"]
+
         same = write("same-stem.vtt", "WEBVTT\n\n00:00:00.000 --> 00:00:02.000\nFrom VTT.\n")
         run(same)
         older = write("same-stem.txt", "From TXT.\n")
@@ -163,6 +172,9 @@ Priya: Third point.
         rows = run(batch)
         assert len(rows) == 2 and rows[0]["error"] and rows[1]["error"] is None
         assert len(run(batch)) == 2  # Generated transcripts are not fresh inputs.
+        (batch / "good.m4a").write_bytes(b"same recording as good.txt")
+        rows = run(batch)
+        assert [Path(r["input"]).name for r in rows] == ["bad.docx", "good.txt"]
         assert run(root / "absent.txt", code=1)[0]["error"]
         assert run(write("bad.json", '{"segments":[{"start":-1,"end":1,"text":"x"}]}'), code=1)[0]["error"]
         assert run(write("empty.srt", ""), code=1)[0]["error"]
@@ -205,6 +217,15 @@ class WhisperModel:
             subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "sine=d=2", str(wav)],
                            capture_output=True, text=True, check=True, timeout=30)
             assert "pip install faster-whisper" in run(wav, code=1)[0]["error"]
+        if shutil.which("ffprobe") and shutil.which("ffmpeg"):
+            # Fast path: an embedded subtitle track is used and Whisper is never touched.
+            subs = write("subs.srt", "1\n00:00:00,000 --> 00:00:02,000\nAna: Embedded line.\n")
+            mp4 = root / "subbed.mp4"
+            subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "sine=d=3", "-i", str(subs),
+                            "-map", "0:a", "-map", "1:s", "-c:a", "aac", "-c:s", "mov_text", str(mp4)],
+                           capture_output=True, text=True, check=True, timeout=60)
+            row = run(mp4, env=dict(os.environ, PYTHONPATH=str(modules)))[0]
+            assert row["source"] == "subtitles" and body(row) == "[00:00] Ana: Embedded line.\n"
         else:
             print("Skipped real no-Whisper media check: tools unavailable or backend installed.", file=sys.stderr)
     print("OK")
