@@ -1,0 +1,36 @@
+# prep.py outputs
+*.transcript.txt
+*.part[0-9][0-9].txt
+*.brief.md
+*.brief.json
+
+# generated eval fixtures (rebuilt by make_long.py / make_media.sh)
+evals/fixtures/long-allhands.txt
+evals/fixtures/media-sample.mp4
+
+# media files (too large for git)
+*.mp4
+*.mov
+*.mkv
+*.webm
+*.m4v
+*.mp3
+*.m4a
+*.wav
+*.aac
+*.flac
+*.ogg
+
+# packaged skill
+briefly.zip
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,60 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:06.000 align:start position:0%
+<c><00:00:00.300>Today we will distinguish correlation from causation.</c>
+
+00:00:06.000 --> 00:00:12.000 align:start position:0%
+<c><00:00:06.100>Today we will distinguish correlation from causation.</c>
+<c><00:00:06.400>Correlation means two measured variables vary together.</c>
+
+00:01:00.000 --> 00:01:06.000 align:start position:0%
+<c><00:01:00.100>Correlation means two measured variables vary together.</c>
+<c><00:01:00.400>That association alone does not establish a causal effect.</c>
+
+00:02:00.000 --> 00:02:06.000 align:start position:0%
+<c><00:02:00.100>That association alone does not establish a causal effect.</c>
+<c><00:02:00.400>A confounder influences both a proposed cause and its outcome.</c>
+
+00:03:00.000 --> 00:03:06.000 align:start position:0%
+<c><00:03:00.100>A confounder influences both a proposed cause and its outcome.</c>
+<c><00:03:00.400>For example, temperature can affect both ice cream sales and swimming.</c>
+
+00:04:00.000 --> 00:04:06.000 align:start position:0%
+<c><00:04:00.100>For example, temperature can affect both ice cream sales and swimming.</c>
+<c><00:04:00.400>Random assignment balances confounders in expectation.</c>
+
+00:05:00.000 --> 00:05:06.000 align:start position:0%
+<c><00:05:00.100>Random assignment balances confounders in expectation.</c>
+<c><00:05:00.400>Small samples can still have accidental imbalance.</c>
+
+00:06:00.000 --> 00:06:06.000 align:start position:0%
+<c><00:06:00.100>Small samples can still have accidental imbalance.</c>
+<c><00:06:00.400>A confidence interval communicates uncertainty about an estimate.</c>
+
+00:07:00.000 --> 00:07:06.000 align:start position:0%
+<c><00:07:00.100>A confidence interval communicates uncertainty about an estimate.</c>
+<c><00:07:00.400>A narrow interval does not repair a biased measurement process.</c>
+
+00:08:00.000 --> 00:08:06.000 align:start position:0%
+<c><00:08:00.100>A narrow interval does not repair a biased measurement process.</c>
+<c><00:08:00.400>Predefining an outcome reduces selective reporting.</c>
+
+00:09:00.000 --> 00:09:06.000 align:start position:0%
+<c><00:09:00.100>Predefining an outcome reduces selective reporting.</c>
+<c><00:09:00.400>Check how participants were selected before generalizing results.</c>
+
+00:10:00.000 --> 00:10:06.000 align:start position:0%
+<c><00:10:00.100>Check how participants were selected before generalizing results.</c>
+<c><00:10:00.400>Observational evidence can be useful without proving causality.</c>
+
+00:11:00.000 --> 00:11:06.000 align:start position:0%
+<c><00:11:00.100>Observational evidence can be useful without proving causality.</c>
+<c><00:11:00.400>For homework, draw a causal diagram for the ice cream example.</c>
+
+00:12:00.000 --> 00:12:06.000 align:start position:0%
+<c><00:12:00.100>For homework, draw a causal diagram for the ice cream example.</c>
+<c><00:12:00.400>The diagram should distinguish the exposure, outcome and confounder.</c>
+
+00:14:54.000 --> 00:15:00.000 align:start position:0%
+<c><00:14:54.100>The diagram should distinguish the exposure, outcome and confounder.</c>
+<c><00:14:54.400>This concludes the lecture.</c>

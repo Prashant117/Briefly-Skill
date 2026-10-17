@@ -1,0 +1,47 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:08.000
+<v Alice>Today we need to settle the launch timing and support plan, then assign the remaining checks.
+
+00:01:00.000 --> 00:01:10.000
+<v Alice>I propose launching on Tuesday. Is that agreed?
+<v Sam>Agreed. Tuesday is our launch day for now.
+
+00:02:00.000 --> 00:02:08.000
+<v Mina>Billing validation still needs a clean run. We have not finished that check.
+
+00:03:00.000 --> 00:03:10.000
+<v Priya>I'll send the final launch copy by Thursday. Design can use that version for the page.
+
+00:04:00.000 --> 00:04:09.000
+<v Alice>Sam, please audit the checkout accessibility.
+<v Sam>Yes, I'll take the checkout accessibility audit.
+
+00:05:00.000 --> 00:05:08.000
+<v Mina>I'll validate the invoice totals against the test orders. I haven't committed to a due date.
+
+00:06:00.000 --> 00:06:08.000
+<v Sam>Someone should look at the error logs.
+<v Alice>Agreed: inspect the error logs before the next review. There is no owner assigned yet.
+
+00:07:00.000 --> 00:07:10.000
+<v Alice>For this release, support will use chat only. Is everyone comfortable with that?
+<v Priya>Yes, agreed: chat-only support for this release.
+
+00:08:00.000 --> 00:08:08.000
+<v Mina>Do we need thirty-day retention for billing exports? We still need an answer from compliance.
+
+00:09:00.000 --> 00:09:08.000
+<v Alice>Our next phase should focus on reliability before we broaden the rollout.
+<v Sam>Agreed, reliability comes first in the next phase.
+
+00:10:00.000 --> 00:10:12.000
+<v Alice>The copy is arriving Thursday, so Tuesday cannot stand. Let's launch on Friday instead.
+<v Mina>Agreed. Friday replaces Tuesday as the launch decision.
+
+00:11:00.000 --> 00:11:12.000
+<v Priya>After the release, let's shift toward learning from customer feedback.
+<v Alice>Agreed. Customer feedback will guide the following phase.
+
+00:11:54.000 --> 00:12:00.000
+<v Alice>That's the final plan. The retention question is still open.

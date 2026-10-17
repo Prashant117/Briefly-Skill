@@ -1,0 +1,43 @@
+1
+00:00:00,000 --> 00:00:09,000
+Rhea: Tell me about a product project that taught you something.
+
+2
+00:01:00,000 --> 00:01:12,000
+Dev: I redesigned a support dashboard. Interviews showed that staff lost time switching between tickets and account history.
+
+3
+00:02:00,000 --> 00:02:10,000
+Rhea: How did you choose what to build?
+
+4
+00:03:00,000 --> 00:03:14,000
+Dev: We prioritized one combined view. We used prototype sessions to test whether staff could find the last contact without opening another page.
+
+5
+00:04:00,000 --> 00:04:12,000
+Dev: I learned that an attractive screen was not enough. We needed realistic ticket histories to reveal missing context.
+
+6
+00:05:00,000 --> 00:05:12,000
+Rhea: What was difficult about working with the team?
+
+7
+00:06:00,000 --> 00:06:14,000
+Dev: We disagreed about how much information belonged on the main screen. Testing helped us compare the alternatives instead of arguing from preference.
+
+8
+00:07:00,000 --> 00:07:12,000
+Dev: I would involve support staff earlier if I repeated the project. Their terminology was different from our internal labels.
+
+9
+00:08:00,000 --> 00:08:12,000
+Rhea: What did you personally contribute?
+
+10
+00:09:00,000 --> 00:09:12,000
+Dev: I led the interviews, made the prototype, and documented the findings. The engineers owned implementation.
+
+11
+00:09:54,000 --> 00:10:00,000
+Rhea: Thank you. That answers my questions for today.
