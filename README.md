@@ -157,28 +157,11 @@ The normalized transcript it writes looks like this:
 
 ## How it works
 
-```mermaid
-flowchart TD
-    A([User shares a transcript or recording]) --> B{Pasted text?}
-    B -- Yes --> X[Extract directly]
-    B -- No, a file --> C{Media file?}
-    C -- No --> N[Parse VTT / SRT / TXT / JSON / DOCX]
-    C -- Yes --> D{Embedded subtitle track?}
-    D -- Yes --> S[Extract with ffmpeg - instant]
-    D -- No --> W{faster-whisper installed?}
-    W -- Yes --> T[Transcribe locally]
-    W -- No --> Q[/Ask the user for a transcript/]
-    S --> N
-    T --> N
-    N --> M[Normalize: strip tags, dedupe rolling captions,<br/>merge into 30 s speaker paragraphs, add timestamps]
-    M --> K{Estimated tokens}
-    K -- "≤ 100k" --> X
-    K -- "> 100k" --> R[Map: notes per ~20k-token part<br/>parallel subagents in Claude Code]
-    R --> U[Reduce: merge, dedupe, final state wins]
-    U --> X
-    X --> O[Fill the 7-section template<br/>with timestamp refs]
-    O --> F[(Show in chat and save name.brief.md)]
-```
+<p align="center">
+  <img src="docs/images/how-it-works.png" alt="Briefly flowchart: pasted text or file; media uses embedded subtitles, then local Whisper, else asks for a transcript; parse and normalize; one pass up to 100k tokens, map-reduce above; fill the 7-section template; show in chat and save name.brief.md" width="560">
+</p>
+
+<sub>Diagram source: [`docs/flowchart.mmd`](docs/flowchart.mmd). It is rendered to PNG because GitHub's mobile app doesn't display Mermaid.</sub>
 
 **Division of labour:** the script does the mechanical work (decoding, cleanup, splitting, caching) cheaply and deterministically. The model does only the reasoning: classifying, attributing and summarizing. That split is what keeps Briefly fast and keeps token costs low.
 

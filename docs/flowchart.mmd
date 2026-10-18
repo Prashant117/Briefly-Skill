@@ -1,0 +1,20 @@
+flowchart TD
+    A([User shares a transcript or recording]) --> B{Pasted text?}
+    B -- Yes --> X[Extract directly]
+    B -- No, a file --> C{Media file?}
+    C -- No --> N[Parse VTT / SRT / TXT / JSON / DOCX]
+    C -- Yes --> D{Embedded subtitle track?}
+    D -- Yes --> S[Extract with ffmpeg - instant]
+    D -- No --> W{faster-whisper installed?}
+    W -- Yes --> T[Transcribe locally]
+    W -- No --> Q[/Ask the user for a transcript/]
+    S --> N
+    T --> N
+    N --> M[Normalize: strip tags, dedupe rolling captions,<br/>merge into 30 s speaker paragraphs, add timestamps]
+    M --> K{Estimated tokens}
+    K -- "≤ 100k" --> X
+    K -- "> 100k" --> R[Map: notes per ~20k-token part<br/>parallel subagents in Claude Code]
+    R --> U[Reduce: merge, dedupe, final state wins]
+    U --> X
+    X --> O[Fill the 7-section template<br/>with timestamp refs]
+    O --> F[(Show in chat and save name.brief.md)]
