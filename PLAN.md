@@ -34,7 +34,7 @@
 |---|---|---|---|
 | Transcript files / pasted text | ✅ | ✅ | ✅ |
 | Video with embedded subs | ✅ ffmpeg | ✅ if sandbox has ffmpeg | ✅ if sandbox has ffmpeg (verify in Prompt 5) |
-| Video without subs (Whisper) | ✅ after `pip install faster-whisper` | ❌ no model download → ask for transcript | ❌ same |
+| Video without subs (Whisper) | ✅ after one-time `prep.py --setup-whisper` (asks first) | ❌ no model download → ask for transcript | ❌ same |
 | Parallel map-reduce | ✅ subagents | sequential | sequential |
 | Upload size | unlimited | sandbox limit | 512 MB/file |
 

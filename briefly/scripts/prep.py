@@ -6,11 +6,14 @@ import contextlib
 import html
 import json
 import math
+import os
 from pathlib import Path
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
+import warnings
 import xml.etree.ElementTree as ET
 import zipfile
 
@@ -20,8 +23,7 @@ MEDIA = {".mp4", ".mov", ".mkv", ".webm", ".m4v", ".mp3", ".m4a",
 CLOCK = r"\d+:\d{2}(?::\d{2})?(?:[.,]\d+)?"
 STAMP = re.compile(r"^\s*[\[(]?(" + CLOCK + r")[\])]?(?:\s+|$)(.*)$")
 HEADING = re.compile(r"^\s*(.{0,60}?)\s*[\[(]?(" + CLOCK + r")[\])]?\s*$")
-MISSING_WHISPER = ("No subtitles found and faster-whisper is not installed. Run: "
-                   "pip install faster-whisper — or provide a transcript file.")
+SIZES = {"tiny": "75 MB", "base": "145 MB", "small": "460 MB", "medium": "1.5 GB"}
 
 
 def seconds(value):
@@ -131,26 +133,106 @@ def json_segments(data, metadata):
     return segments
 
 
-def whisper(path, model, metadata):
+def missing():
+    return ("No subtitles found and local transcription is not set up. Run: python3 {} --setup-whisper "
+            "(one-time, ~560 MB) — or provide a transcript file.").format(Path(__file__).resolve())
+
+
+def venv_python():
+    root = Path(os.environ.get("BRIEFLY_WHISPER_VENV") or "~/.cache/briefly/whisper-venv").expanduser()
+    return root / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+
+
+def backend():
     # Third-party model messages must never contaminate the JSON protocol.
     with contextlib.redirect_stdout(sys.stderr):
         try:
             from faster_whisper import WhisperModel
         except ImportError:
-            raise ValueError(MISSING_WHISPER) from None
-        segments, duration, report = [], 0, 60
+            return None
+    return WhisperModel
+
+
+def transcribe(path, model, WhisperModel):
+    """Run faster-whisper; return Whisper-style JSON for json_segments()."""
+    segments, report = [], 60
+    print("Loading Whisper model '{}'".format(model), file=sys.stderr)
+    # numpy on macOS warns "overflow encountered in matmul"; the transcript is still correct.
+    with contextlib.redirect_stdout(sys.stderr), warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
         engine = WhisperModel(model, device="auto", compute_type="int8")
         stream, info = engine.transcribe(str(path), vad_filter=True, beam_size=1)
+        total = seconds(info.duration)
         for segment in stream:
             start, end = seconds(segment.start), seconds(segment.end)
-            segments.extend(lines(segment.text, metadata, start, end))
-            duration = max(duration, end)
+            segments.append(dict(start=start, end=end, text=segment.text))
             if end >= report:
-                print("Transcribed " + clock(end, True), file=sys.stderr)
+                print("Transcribing {}: {} / {} ({}%)".format(
+                    path.name, clock(end, total >= 3600), clock(total, total >= 3600),
+                    min(100, int(end * 100 / total)) if total else 0), file=sys.stderr)
                 report = (int(end) // 60 + 1) * 60
-        duration = max(duration, seconds(info.duration))
-    metadata.update(duration=duration, source="whisper")
+    return dict(segments=segments, duration=total)
+
+
+def worker(media_path, model, out):
+    """Hidden --whisper-worker mode, run by the isolated venv's Python."""
+    try:
+        engine = backend()
+        data = transcribe(Path(media_path), model, engine) if engine else dict(error=missing())
+    except Exception as exc:
+        data = dict(error=str(exc) or type(exc).__name__)
+    Path(out).write_text(json.dumps(data), encoding="utf-8")
+    return 1 if "error" in data else 0
+
+
+def whisper(path, model, metadata):
+    engine, python = backend(), venv_python()
+    if engine:
+        data = transcribe(path, model, engine)
+    elif python.exists():
+        print("Using local Whisper environment: " + str(python.parent.parent), file=sys.stderr)
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "whisper.json"
+            # No timeout: long recordings take many minutes on CPU. stderr passes through for progress.
+            done = subprocess.run([str(python), str(Path(__file__).resolve()), "--whisper-worker", str(path),
+                                   "--model", model, "--worker-out", str(out)], stdout=sys.stderr)
+            try:
+                data = json.loads(out.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                raise ValueError("Local transcription failed (worker exit {})".format(done.returncode)) from None
+        if "error" in data:
+            raise ValueError(data["error"])
+    else:
+        raise ValueError(missing())
+    segments = json_segments(data, metadata)
+    metadata.update(duration=max(metadata["duration"], seconds(data["duration"])), source="whisper")
     return segments
+
+
+def setup(model):
+    python = venv_python()
+    root, step = python.parent.parent, "Creating the Whisper environment"
+    try:
+        if not python.exists():
+            print("{}: {}".format(step, root), file=sys.stderr)
+            subprocess.run([sys.executable, "-m", "venv", str(root)], stdout=sys.stderr, check=True)
+        if subprocess.run([str(python), "-c", "import faster_whisper"],
+                          stdout=sys.stderr, stderr=subprocess.DEVNULL).returncode:
+            step = "Installing faster-whisper"
+            print(step + "…", file=sys.stderr)
+            subprocess.run([str(python), "-m", "pip", "install", "--upgrade", "pip", "faster-whisper"],
+                           stdout=sys.stderr, check=True)
+        step = "Downloading Whisper model '{}'".format(model)
+        print("{} ({}one time)…".format(step, "~" + SIZES[model] + ", " if model in SIZES else ""), file=sys.stderr)
+        subprocess.run([str(python), "-c", "import sys; from faster_whisper import WhisperModel; "
+                        "WhisperModel(sys.argv[1], device='cpu', compute_type='int8')", model],
+                       stdout=sys.stderr, check=True)
+        error = None
+    except (OSError, subprocess.CalledProcessError) as exc:
+        error = "{} failed: {}".format(step, exc)
+        print("Error: " + error, file=sys.stderr)
+    print(json.dumps(dict(setup="error" if error else "ok", python=str(python), model=model, error=error)))
+    return 1 if error else 0
 
 
 def media(path, model, metadata):
@@ -257,12 +339,23 @@ def generated(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("inputs", metavar="INPUT", nargs="+", help="transcript/media files or folders (non-recursive)")
+    parser.add_argument("inputs", metavar="INPUT", nargs="*", help="transcript/media files or folders (non-recursive)")
     parser.add_argument("--out", type=Path, help="output folder (default: next to each input)")
     parser.add_argument("--part-tokens", type=int, default=20000, help="max estimated tokens per part file (default: 20000)")
     parser.add_argument("--model", default="small", help="faster-whisper model for media without subtitles (default: small)")
     parser.add_argument("--force", action="store_true", help="ignore the cached transcript and rebuild it")
+    parser.add_argument("--setup-whisper", action="store_true",
+                        help="one-time: install faster-whisper and the --model into an isolated venv "
+                             "(~/.cache/briefly/whisper-venv, or $BRIEFLY_WHISPER_VENV), then exit")
+    parser.add_argument("--whisper-worker", help=argparse.SUPPRESS)
+    parser.add_argument("--worker-out", help=argparse.SUPPRESS)
     args = parser.parse_args()
+    if args.setup_whisper:
+        return setup(args.model)
+    if args.whisper_worker:
+        return worker(args.whisper_worker, args.model, args.worker_out)
+    if not args.inputs:
+        parser.error("at least one INPUT is required (or use --setup-whisper)")
     if args.part_tokens < 1:
         parser.error("--part-tokens must be positive")
     inputs = []

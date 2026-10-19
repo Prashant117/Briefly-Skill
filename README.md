@@ -65,7 +65,7 @@ Meeting summarizers fail in predictable ways: they invent owners, turn "by Frida
 | **Claude Code**, or **claude.ai** with code execution and Skills enabled | Using Briefly in Claude | One platform is required |
 | **ChatGPT** paid plan with the GPT builder and *Code Interpreter & Data Analysis* | Using Briefly in ChatGPT | One platform is required |
 | **ffmpeg / ffprobe** | Reading embedded subtitle tracks from video files (instant) | Optional |
-| **faster-whisper** (`pip install faster-whisper`) | Transcribing video/audio that has no subtitles, locally | Optional, Claude Code only |
+| **faster-whisper** + Whisper `small` (~560 MB) | Transcribing video/audio that has no subtitles, locally | Set up automatically on first use (asks first) |
 
 > **Whisper is free here.** Briefly uses the open-source Whisper model (MIT licence) through `faster-whisper`, running on your own computer. It is *not* the paid OpenAI Whisper API. The `small` model (~0.5 GB) downloads once and then works offline.
 
@@ -83,11 +83,13 @@ cp -R Briefly-Skill/briefly ~/.claude/skills/
 
 Restart Claude Code. The skill triggers automatically on requests like *"summarize this meeting recording"*, or you can invoke it with `/briefly`.
 
-Optional, for recordings without subtitles:
+Optional: set up local transcription for recordings without subtitles now. Otherwise Briefly offers to do it the first time it needs it.
 
 ```bash
-pip install faster-whisper
+python3 ~/.claude/skills/briefly/scripts/prep.py --setup-whisper
 ```
+
+This creates an isolated environment at `~/.cache/briefly/whisper-venv` (override with `BRIEFLY_WHISPER_VENV`), installs `faster-whisper` there and downloads the model once (about 560 MB in total). Your system Python is left untouched.
 
 ### claude.ai
 
@@ -233,6 +235,7 @@ Ask for JSON to get the same fields as `title, content_type, duration, source, t
 
 ```text
 python3 briefly/scripts/prep.py INPUT [INPUT ...] [--out DIR] [--part-tokens N] [--model NAME] [--force]
+python3 briefly/scripts/prep.py --setup-whisper [--model NAME]
 ```
 
 | Option | Default | Description |
@@ -242,6 +245,7 @@ python3 briefly/scripts/prep.py INPUT [INPUT ...] [--out DIR] [--part-tokens N] 
 | `--part-tokens N` | `20000` | Max estimated tokens per part (`len(text) // 4`). The ChatGPT route uses `15000`. |
 | `--model NAME` | `small` | faster-whisper model for media without subtitles (`base` is faster, `medium` more accurate). |
 | `--force` | off | Rebuild instead of reusing a cached transcript. |
+| `--setup-whisper` | — | One-time: create the isolated Whisper environment, install `faster-whisper`, download `--model`, print one `{"setup": "ok"\|"error", ...}` JSON line and exit. Safe to re-run. |
 
 **Exit codes:** `0` if at least one input succeeded, `1` if all failed. A broken file never stops the rest of a batch; its JSON line carries an `error` instead.
 
@@ -292,7 +296,7 @@ Quality is graded against 8 fixtures (meeting, YouTube lecture, interview, plain
 <details>
 <summary><b>Can it transcribe videos inside ChatGPT or claude.ai?</b></summary>
 
-Only when the video has an embedded subtitle track. Hosted sandboxes can't download a Whisper model, so Briefly asks for a transcript instead of guessing. Local transcription works in Claude Code with `faster-whisper` installed.
+Only when the video has an embedded subtitle track. ChatGPT's sandbox has no internet, so Briefly asks for a transcript and gives the export steps. claude.ai tries the one-time setup and falls back to the same request if it can't download. In Claude Code, the first recording without subtitles prompts a one-time setup (`prep.py --setup-whisper`, about 560 MB). After that, transcription runs offline on your machine with progress shown. Expect roughly 2× real time on an Apple Silicon CPU with `small` (a 1-hour recording takes about 30 minutes); `--model base` is about 2–3× faster but weaker on names. Re-runs use the cached transcript.
 </details>
 
 <details>

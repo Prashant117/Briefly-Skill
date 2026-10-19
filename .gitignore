@@ -7,6 +7,8 @@
 # generated eval fixtures (rebuilt by make_long.py / make_media.sh)
 evals/fixtures/long-allhands.txt
 evals/fixtures/media-sample.mp4
+graphify-out
+/graphify-out
 
 # media files (too large for git)
 *.mp4

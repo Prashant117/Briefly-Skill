@@ -29,6 +29,7 @@ Briefly/
 
 ```
 python3 prep.py INPUT [INPUT ...] [--out DIR] [--part-tokens 20000] [--model small] [--force]
+python3 prep.py --setup-whisper [--model small]
 ```
 
 - `INPUT` is a file or a directory. A directory means every supported file inside it, non-recursive. In a directory, a media file is skipped when a transcript file with the same stem sits beside it (`lecture.mp4` + `lecture.srt` → use the `.srt`).
@@ -66,10 +67,21 @@ Rules:
 ### Media pipeline (fastest first)
 
 1. If `ffprobe` is on PATH and the file has a subtitle stream, extract the first one with `ffmpeg -i IN -map 0:s:0 -f srt -` and parse it as SRT. `source = "subtitles"`.
-2. Else, if `faster_whisper` can be imported: `WhisperModel(model, device="auto", compute_type="int8")`, `transcribe(path, vad_filter=True, beam_size=1)`, then use the segments. `source = "whisper"`. Print progress to stderr every ~60 s of audio processed.
-3. Else, set `error` to: `"No subtitles found and faster-whisper is not installed. Run: pip install faster-whisper — or provide a transcript file."`
+2. Else, transcribe with faster-whisper: `WhisperModel(model, device="auto", compute_type="int8")`, `transcribe(path, vad_filter=True, beam_size=1)`. `source = "whisper"`. Backends, in order:
+   1. `faster_whisper` imports in the current interpreter → use it in-process.
+   2. Else, if the isolated venv's Python exists → run it as a worker: `[venv_python, prep.py, "--whisper-worker", media, "--model", model, "--worker-out", tmp.json]`. The worker writes Whisper-style JSON (`{"segments": [...], "duration": sec}`, or `{"error": "..."}`), which the parent parses with the normal `.json` rules. The worker's stderr passes through; there is no timeout.
+   3. Else, set `error` to: `"No subtitles found and local transcription is not set up. Run: python3 <absolute path>/prep.py --setup-whisper (one-time, ~560 MB) — or provide a transcript file."`
+   Print `Transcribing name.mp4: 12:00 / 47:31 (25%)` to stderr every ~60 s of audio processed. Ignore `RuntimeWarning` (numpy's harmless macOS `overflow encountered in matmul`) during transcription; keep third-party stdout on stderr.
+3. `--whisper-worker` and `--worker-out` are internal and hidden from `--help` (`argparse.SUPPRESS`).
 
-Import `faster_whisper` lazily, inside the function, so the script runs fine without it.
+Import `faster_whisper` lazily, inside the function, so the script runs fine without it. `prep.py` itself stays stdlib-only and Python 3.9 compatible.
+
+### `--setup-whisper` (one-time local transcription setup)
+
+1. Venv at `~/.cache/briefly/whisper-venv`, overridable with `BRIEFLY_WHISPER_VENV`. Created with `[sys.executable, "-m", "venv", path]`, so the right Python is used and the system Python is never modified.
+2. If the venv can't already import `faster_whisper`: `[venv_python, "-m", "pip", "install", "--upgrade", "pip", "faster-whisper"]`, with output on stderr.
+3. Pre-download `--model` with `WhisperModel(model, device="cpu", compute_type="int8")` after printing `Downloading Whisper model 'small' (~460 MB, one time)…` (tiny 75 MB, base 145 MB, small 460 MB, medium 1.5 GB).
+4. stdout is exactly one line: `{"setup": "ok"|"error", "python": "<venv python>", "model": "small", "error": null|"..."}`. Exit 0 on ok, 1 on error. Re-running is safe: an existing install skips pip.
 
 ## C. Output template (exact; this is what `references/template.md` must contain)
 

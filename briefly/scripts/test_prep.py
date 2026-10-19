@@ -14,7 +14,7 @@ import zipfile
 SCRIPT = Path(__file__).with_name("prep.py")
 
 
-def run(*args, code=0, env=None):
+def run(*args, code=0, env=None, stderr=False):
     result = subprocess.run([sys.executable, str(SCRIPT)] + [str(a) for a in args],
                             capture_output=True, text=True, env=env, timeout=30)
     assert result.returncode == code, (result.returncode, result.stdout, result.stderr)
@@ -24,7 +24,7 @@ def run(*args, code=0, env=None):
         if row["error"] is None:
             text = Path(row["transcript"]).read_text()
             assert row["est_tokens"] == len(text) // 4
-    return rows
+    return (rows, result.stderr) if stderr else rows
 
 
 def body(row):
@@ -35,6 +35,8 @@ def main():
     ast.parse(SCRIPT.read_text(), feature_version=(3, 9))
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
+        # Never touch the user's real ~/.cache/briefly/whisper-venv.
+        os.environ["BRIEFLY_WHISPER_VENV"] = str(root / "no-venv")
 
         def write(name, text):
             path = root / name
@@ -194,7 +196,45 @@ Priya: Third point.
         assert help_result.returncode == 0 and "INPUT" in help_result.stdout
         media = root / "audio.wav"
         media.write_bytes(b"dummy input for mocked backend")
-        assert "pip install faster-whisper" in run(media, code=1, env=env)[0]["error"]
+        error = run(media, code=1, env=env)[0]["error"]
+        assert "--setup-whisper" in error and str(SCRIPT.resolve()) in error
+        assert "--whisper-worker" not in help_result.stdout and "--setup-whisper" in help_result.stdout
+
+        # Isolated venv: a fake bin/python runs this interpreter with a mocked faster_whisper.
+        venv_modules = root / "venv-modules"
+        venv_modules.mkdir()
+        (venv_modules / "faster_whisper.py").write_text('''import warnings
+from types import SimpleNamespace as S
+print("import noise")
+class WhisperModel:
+    def __init__(self, model, device, compute_type):
+        assert model == "small" and device in ("auto", "cpu") and compute_type == "int8"
+        print("backend noise")
+    def transcribe(self, path, vad_filter, beam_size):
+        def stream():
+            warnings.warn("overflow encountered in matmul", RuntimeWarning)
+            yield S(start=0, end=65, text="Venv words.")
+        return stream(), S(duration=70)
+''')
+        venv = root / "fake-venv"
+        (venv / "bin").mkdir(parents=True)
+        python = venv / "bin" / "python"
+        python.write_text('#!/bin/sh\ncase "$*" in *"-m pip"*) echo "pip must not run" >&2; exit 9;; esac\n'
+                          'PYTHONPATH="{}" exec "{}" "$@"\n'.format(venv_modules, sys.executable))
+        python.chmod(0o755)
+        venv_env = dict(env, BRIEFLY_WHISPER_VENV=str(venv))
+        venv_media = root / "venv.wav"
+        venv_media.write_bytes(b"dummy input for the venv worker")
+        rows, err = run(venv_media, env=venv_env, stderr=True)
+        assert len(rows) == 1 and rows[0]["source"] == "whisper" and rows[0]["duration"] == "00:01:10"
+        assert "[00:00] Venv words." in body(rows[0])
+        assert "Transcribing venv.wav: 01:05 / 01:10 (92%)" in err
+        assert "overflow" not in err and "RuntimeWarning" not in err
+        setup = subprocess.run([sys.executable, str(SCRIPT), "--setup-whisper"],
+                               capture_output=True, text=True, env=venv_env, timeout=30)
+        assert setup.returncode == 0, setup.stderr
+        assert len(setup.stdout.splitlines()) == 1 and "pip must not run" not in setup.stderr
+        assert json.loads(setup.stdout) == {"setup": "ok", "python": str(python), "model": "small", "error": None}
         module.write_text('''from types import SimpleNamespace as S
 print("import noise")
 class WhisperModel:
@@ -216,7 +256,7 @@ class WhisperModel:
             wav = root / "real.wav"
             subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "sine=d=2", str(wav)],
                            capture_output=True, text=True, check=True, timeout=30)
-            assert "pip install faster-whisper" in run(wav, code=1)[0]["error"]
+            assert "--setup-whisper" in run(wav, code=1)[0]["error"]
         if shutil.which("ffprobe") and shutil.which("ffmpeg"):
             # Fast path: an embedded subtitle track is used and Whisper is never touched.
             subs = write("subs.srt", "1\n00:00:00,000 --> 00:00:02,000\nAna: Embedded line.\n")

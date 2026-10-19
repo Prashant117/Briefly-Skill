@@ -54,9 +54,26 @@ Verified externally: OpenAI's [migration guide](https://learn.chatgpt.com/docs/m
 
 15 of 15 queries in `trigger-queries.md` route correctly, judged from the SKILL.md description. The description is unchanged. This is a review of the wording, not an observed routing test.
 
+## No-transcript fix (19 October 2026)
+
+Video or audio without embedded subtitles used to stop at "faster-whisper is not installed". Now:
+
+- **Setup:** `prep.py --setup-whisper` creates an isolated venv at `~/.cache/briefly/whisper-venv` and installs faster-whisper there, so the system Python is never touched. It then pre-downloads the model and prints one JSON line. A real run took 28 s, and a re-run took 1.5 s with no pip call.
+- **Worker:** when the current Python can't import faster-whisper, `prep.py` runs the venv's Python as a hidden `--whisper-worker` and parses its JSON with the normal `.json` code. The new error message gives the exact setup command.
+- **Progress and noise:** stderr shows `Transcribing x.mp4: mm:ss / mm:ss (NN%)` every ~60 s of audio, and numpy's `RuntimeWarning` is silenced during transcription.
+- **Tests:** 4 new mocked tests, with no network or model: the error names `--setup-whisper` and the script path; the venv worker returns `source=whisper` with one JSON line on stdout; setup is idempotent with no pip; and no warning text leaks to stderr. Three deliberate code mutations were each caught by the tests.
+- **Real run** on a `say`-generated MP4 with no subtitles: error, then setup ok, then `source: "whisper"` in 4.5 s.
+- **Claude Code end-to-end** (headless `claude -p`, fresh venv path): turn 1 asked the setup question once. After "yes", turn 2 ran `--setup-whisper`, re-ran prep and saved a brief with Friday as a Decision and "by Thursday" as an Action Item, plus the automatic-transcription warning. Whisper heard the TTS voice's "Priya" as "Freya", so the owner reads Freya. That is a transcription error, not a pipeline one, and the warning covers it. The session mentioned that CPU transcription is slow but didn't offer `--model base`.
+- **Verification pass (19 October 2026):**
+  - The tests pass on Python 3.9.
+  - A fresh-venv setup took 24 s with the model already cached, and a re-run took 1.5 s.
+  - **Speed:** `small` on an Apple Silicon CPU runs at about 2× real time (4 min of audio in 122 s), so a 1-hour recording takes about 30 min. That exceeds Claude Code's 10-minute command limit, so SKILL.md now runs prep.py on media in the background and waits for it.
+  - **Rejected speed-ups:** `cpu_threads=os.cpu_count()` was 2× *slower* (it also uses the efficiency cores). faster-whisper's `BatchedInferencePipeline` was 7× faster but dropped about 8% of words (216 vs 236 correct) and gave only 30-second timestamps.
+- **ChatGPT:** the fallback now includes Zoom/Teams/Meet/YouTube export one-liners. The instructions are 7,975 characters (7,995 bytes).
+
 ## Remaining limitations
 
 - **ChatGPT quality is ungraded.** I can't operate a Custom GPT from here. Run the checklist and paste the outputs back for grading.
-- **Real Whisper transcription is untested.** faster-whisper isn't installed, and the backend logic is covered by a mocked test.
-- The 7,979-character GPT instructions leave about 20 characters of headroom. Any future rule must replace wording rather than add to it.
+- **Real Whisper transcription is lightly tested:** one 4-second clip only, and names can be misheard (see above).
+- The 7,975-character GPT instructions leave about 25 characters of headroom. Any future rule must replace wording rather than add to it.
 - Token counts are estimates (`len // 4`). One line longer than `--part-tokens` gives an error; raise the limit.

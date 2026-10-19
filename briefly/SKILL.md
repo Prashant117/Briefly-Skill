@@ -22,10 +22,17 @@ Resolve resources relative to this skill folder. Run the script by its full path
 python3 <skill-dir>/scripts/prep.py <files> --out <scratch-dir>
 ```
 Use each input's directory as <scratch-dir> in Claude Code; use the platform's writable outputs folder in claude.ai. For inputs in different directories, run once per input in input order. Keep the default --part-tokens 20000 unless a line needs a higher limit; select --model only when requested. Use --force to bypass an existing transcript cache.
+Media without subtitles is transcribed at roughly 2× real time on CPU with `small` (a 1-hour recording takes about 30 minutes), which can exceed a tool's command timeout. Run prep.py on media inputs as a background command when the tool supports it (Claude Code: run_in_background), wait for it to finish, and relay its progress lines; never kill it for running long.
 Parse each stdout JSON line. Read input, transcript, parts, source, duration, est_tokens and error. Read progress from stderr. Preserve supplied input order; process directory files in filename order.
 
 ## Errors
-For a missing faster-whisper error, offer `pip install faster-whisper` for local use or ask for a transcript. For a corrupt, missing or unsupported input, report that file and continue with the others. For an oversized line, increase --part-tokens and retry. For output filename collisions, use separate --out directories. For any other error, report the affected file and continue. Never extract from an error row or silently use a cloud transcription service.
+When an error says local transcription is not set up:
+1. Ask once: "This recording has no subtitles. Set up free local transcription? One-time download, about 560 MB (faster-whisper + Whisper 'small'); audio never leaves this computer. Or send a transcript instead."
+2. On yes, run `python3 <skill-dir>/scripts/prep.py --setup-whisper` (allow up to 10 minutes), then re-run the original prep command with the same inputs and continue to the brief.
+3. Say the first transcription of a long recording can take several minutes on CPU; offer `--model base` (on both commands) for speed over name accuracy.
+4. On claude.ai, try the setup once. If it fails (e.g. no network), ask for a transcript in at most four short lines: Zoom: cloud recording → Audio transcript (.vtt). Teams: meeting recap → Transcript → Download (.vtt/.docx). Meet: transcript Doc → File → Download → .docx. YouTube: ⋯ → Show transcript → copy and paste.
+
+For a corrupt, missing or unsupported input, report that file and continue with the others. For an oversized line, increase --part-tokens and retry. For output filename collisions, use separate --out directories. For any other error, report the affected file and continue. Never extract from an error row or silently use a cloud transcription service.
 
 ## Scale workflow
 1. Run scripts/prep.py for file inputs and read each JSON line as above.
